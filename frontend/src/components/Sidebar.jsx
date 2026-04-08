@@ -21,7 +21,7 @@ function NodeAvatar({ node, isOwn, size = 36 }) {
   )
 }
 
-export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, theme, onThemeChange, collapsed, onToggleCollapse }) {
+export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, theme, onThemeChange, collapsed }) {
   return (
     <div className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
       <div className="sidebar-inner">
@@ -103,9 +103,6 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
         </div>
       </div>
 
-      <button className="sidebar-toggle" onClick={onToggleCollapse} title={collapsed ? 'Expand' : 'Collapse'}>
-        {collapsed ? '›' : '‹'}
-      </button>
     </div>
   )
 }

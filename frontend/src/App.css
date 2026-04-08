@@ -62,7 +62,6 @@ input, select { font: inherit; }
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  position: relative;
   transition: width 0.2s ease;
   overflow: hidden;
 }
@@ -82,22 +81,21 @@ input, select { font: inherit; }
 }
 
 .sidebar-toggle {
-  position: absolute;
-  top: 50%;
-  right: -14px;
-  transform: translateY(-50%);
-  width: 28px; height: 28px;
-  border-radius: 50%;
+  flex-shrink: 0;
+  width: 16px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  font-size: 16px;
-  line-height: 1;
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-dim);
+  font-size: 14px;
+  z-index: 1000;
+  position: relative;
 }
-.sidebar-toggle:hover { color: var(--text); }
+.sidebar-toggle:hover { color: var(--text); background: var(--surface2); }
 
 .sidebar-logo {
   display: flex;

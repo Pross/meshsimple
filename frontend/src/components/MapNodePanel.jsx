@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { NodeAvatar } from './Sidebar'
 import { relativeTime } from '../utils/nodeColor'
 
-export default function MapNodePanel({ nodes, myNodeId, onSelectNode }) {
+export default function MapNodePanel({ nodes, myNodeId, onSelectNode, collapsed, onToggleCollapse }) {
   const [search, setSearch] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
 
   const sorted = Object.values(nodes)
     .filter((n) => {
@@ -27,7 +26,7 @@ export default function MapNodePanel({ nodes, myNodeId, onSelectNode }) {
 
   return (
     <div className={`map-node-panel${collapsed ? ' map-node-panel--collapsed' : ''}`}>
-      <button className="map-node-panel-toggle" onClick={() => setCollapsed((v) => !v)}>
+      <button className="map-node-panel-toggle" onClick={onToggleCollapse}>
         {collapsed ? '‹' : '›'}
       </button>
       {!collapsed && (

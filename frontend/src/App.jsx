@@ -17,6 +17,7 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [flyTarget, setFlyTarget] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [nodePanelCollapsed, setNodePanelCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadFading, setUnreadFading] = useState(false)
   const [theme, setTheme] = useTheme()
@@ -102,8 +103,15 @@ export default function App() {
         theme={theme}
         onThemeChange={setTheme}
         collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
+
+      <button
+        className="sidebar-toggle"
+        onClick={() => setSidebarCollapsed((v) => !v)}
+        title={sidebarCollapsed ? 'Expand' : 'Collapse'}
+      >
+        {sidebarCollapsed ? '›' : '‹'}
+      </button>
 
       <div className="main-content">
         {activeTab === 'map' && (
@@ -114,6 +122,7 @@ export default function App() {
                 myNodeId={myNodeId}
                 onSelectNode={handleSelectNode}
                 flyTarget={flyTarget}
+                nodePanelCollapsed={nodePanelCollapsed}
               />
               {selectedNode && (
                 <NodePanel
@@ -128,6 +137,8 @@ export default function App() {
               nodes={nodes}
               myNodeId={myNodeId}
               onSelectNode={handleSelectNode}
+              collapsed={nodePanelCollapsed}
+              onToggleCollapse={() => setNodePanelCollapsed((v) => !v)}
             />
           </div>
         )}

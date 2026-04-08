@@ -43,6 +43,15 @@ function FitBounds({ nodes }) {
   return null
 }
 
+function InvalidateSize({ trigger }) {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 220)
+    return () => clearTimeout(t)
+  }, [trigger, map])
+  return null
+}
+
 function FlyTo({ target }) {
   const map = useMap()
   useEffect(() => {
@@ -51,7 +60,7 @@ function FlyTo({ target }) {
   return null
 }
 
-export default function Map({ nodes, myNodeId, onSelectNode, flyTarget }) {
+export default function Map({ nodes, myNodeId, onSelectNode, flyTarget, nodePanelCollapsed }) {
   const nodesWithPos = Object.values(nodes).filter((n) => n.lat && n.lon)
 
   return (
@@ -65,6 +74,7 @@ export default function Map({ nodes, myNodeId, onSelectNode, flyTarget }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       />
       <FitBounds nodes={nodesWithPos} />
+      <InvalidateSize trigger={nodePanelCollapsed} />
       {flyTarget && <FlyTo target={flyTarget} />}
       <MarkerClusterGroup chunkedLoading>
         {nodesWithPos.map((node) => (
