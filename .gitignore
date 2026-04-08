@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+backend/static/
+node_modules/
+frontend/dist/
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
+agents/

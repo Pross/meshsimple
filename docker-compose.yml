@@ -1,0 +1,15 @@
+services:
+  meshsimple:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - meshsimple-data:/app/data
+    environment:
+      - MESHTASTIC_HOST=${MESHTASTIC_HOST}
+      - MESHTASTIC_PORT=${MESHTASTIC_PORT:-4403}
+      - DB_PATH=/app/data/meshsimple.db
+    restart: unless-stopped
+
+volumes:
+  meshsimple-data:

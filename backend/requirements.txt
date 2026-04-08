@@ -1,0 +1,13 @@
+fastapi>=0.111
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+# meshtastic and its deps (excluding pyobjc which fails on macOS system Python)
+meshtastic>=2.3
+bleak
+packaging
+protobuf
+pypubsub
+pyserial
+pyyaml
+requests
+tabulate
