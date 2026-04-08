@@ -1,45 +1,73 @@
 # meshsimple
 
-Local Meshtastic monitoring app — persistent map, node list, and channel messaging.
+Self-hosted Meshtastic monitoring app. Displays a live map of all mesh nodes, persistent channel 0 messaging (send and receive), and a node list — in a single Docker container.
 
-## Setup
+![meshsimple](https://raw.githubusercontent.com/Pross/meshsimple/main/frontend/public/icon.png)
 
-Copy `.env.example` to `.env` and fill in your device details:
+## Features
 
-```
-MESHTASTIC_HOST=192.168.1.x   # IP of your Meshtastic device
-MESHTASTIC_PORT=4403           # Default TCP port
-PORT=8080                      # Host port to expose
-```
+- Live node map (OpenStreetMap) with clustering and your own node highlighted
+- Node list with last heard, battery, SNR, hops, hardware model, firmware version
+- Channel 0 messaging — send and receive, fully persistent across restarts
+- Unread message count in sidebar and browser tab title
+- Light / dark / system theme
+- Connects to your Meshtastic device over TCP/WiFi
 
-## Run
+## Requirements
 
-```bash
-docker-compose up -d
-```
-
-Navigate to `http://localhost:8080`.
+- A Meshtastic device accessible over TCP (most devices support this via WiFi)
+- Docker
 
 ## Unraid
 
-1. Install the **Docker Compose Manager** plugin from Community Applications
-2. Create a new compose stack pointing to this repo (or paste the `docker-compose.yml`)
-3. Set environment variables in the stack config:
-   - `MESHTASTIC_HOST` — IP address of your Meshtastic device
-   - `PORT` — host port (default `8080`)
-4. The data volume maps to `/mnt/user/appdata/meshsimple` — set this in the compose or via the Unraid UI
-5. Start the stack — navigate to `http://<unraid-ip>:8080`
+Add a new container via the Docker tab:
+
+| Field | Value |
+|---|---|
+| Repository | `ghcr.io/pross/meshsimple:latest` |
+| Port | `8080` (host) → `8080` (container), TCP |
+| Variable | `MESHTASTIC_HOST` = IP of your Meshtastic device |
+| Variable | `MESHTASTIC_PORT` = `4403` (default) |
+| Path | `/mnt/user/appdata/meshsimple` → `/app/data` |
+
+## Docker
+
+```bash
+docker run -d \
+  --name meshsimple \
+  -p 8080:8080 \
+  -e MESHTASTIC_HOST=192.168.1.x \
+  -e MESHTASTIC_PORT=4403 \
+  -v /path/to/data:/app/data \
+  ghcr.io/pross/meshsimple:latest
+```
+
+Or with Docker Compose:
+
+```bash
+cp .env.example .env
+# Edit .env with your device IP
+docker compose up -d
+```
+
+Navigate to `http://<host-ip>:8080`.
 
 ## Development
 
+Requires Python 3.11+ and Node 20+.
+
 ```bash
-# Backend (requires Python 3.11+)
+# Backend
 cd backend && pip install -r requirements.txt
 make dev-backend
 
-# Frontend (requires Node 20+)
+# Frontend (in a separate terminal)
 cd frontend && npm install
 make dev-frontend
 ```
 
-Frontend dev server runs on `:5173` and proxies `/api` and `/ws` to `:8000`.
+Frontend dev server runs on `:5173` and proxies `/api` and `/ws` to the backend on `:8000`.
+
+## Licence
+
+MIT
