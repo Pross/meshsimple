@@ -8,6 +8,30 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function dayKey(isoString) {
+  const d = new Date(isoString)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+function dayLabel(isoString) {
+  const d = new Date(isoString)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+
+  if (sameDay(d, today)) return 'Today'
+  if (sameDay(d, yesterday)) return 'Yesterday'
+
+  const opts = { weekday: 'long', day: 'numeric', month: 'long' }
+  if (d.getFullYear() !== today.getFullYear()) opts.year = 'numeric'
+  return d.toLocaleDateString([], opts)
+}
+
 function NodeListPanel({ nodes, myNodeId, messageNodeIds, onSelectNode }) {
   const [search, setSearch] = useState('')
 
@@ -59,13 +83,36 @@ function NodeListPanel({ nodes, myNodeId, messageNodeIds, onSelectNode }) {
   )
 }
 
-export default function Messages({ messages, nodes, myNodeId, onSelectNode }) {
+export default function Messages({ messages, nodes, myNodeId, onSelectNode, unreadCount }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
+  const dividerRef = useRef(null)
+  // Snapshot unread count at mount — Messages remounts on each tab visit
+  const unreadAtMount = useRef(unreadCount)
+  const hasScrolledRef = useRef(false)
 
+  // Stable first-unread ID based on mount snapshot
+  const firstUnreadCount = unreadAtMount.current
+  const firstUnreadId =
+    firstUnreadCount > 0 && messages.length >= firstUnreadCount
+      ? messages[messages.length - firstUnreadCount]?.id
+      : null
+
+  // On first render with data: scroll to divider (if unread) or bottom.
+  // On subsequent message arrivals: scroll to bottom.
   useEffect(() => {
+    if (messages.length === 0) return
+    if (!hasScrolledRef.current) {
+      hasScrolledRef.current = true
+      if (dividerRef.current) {
+        dividerRef.current.scrollIntoView({ behavior: 'instant' })
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      }
+      return
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -103,27 +150,45 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode }) {
     return node?.short_name || msg.from_node_id.slice(-4).toUpperCase()
   }
 
-  // Build set of node IDs that have participated in messages
   const messageNodeIds = new Set(messages.map((m) => m.from_node_id))
-
-  // Lookup map for reply threading
   const messageById = Object.fromEntries(messages.map((m) => [m.id, m]))
 
-  // Group consecutive messages from same sender
-  const grouped = messages.reduce((acc, msg) => {
-    const last = acc[acc.length - 1]
-    if (last && last.from_node_id === msg.from_node_id && last.direction === msg.direction && !msg.reply_id) {
+  // Group consecutive messages from same sender, inserting day + unread dividers
+  const grouped = []
+  let currentDayKey = null
+  for (const msg of messages) {
+    // Day divider
+    const msgDayKey = msg.timestamp ? dayKey(msg.timestamp) : null
+    if (msgDayKey && msgDayKey !== currentDayKey) {
+      currentDayKey = msgDayKey
+      grouped.push({ type: 'day', label: dayLabel(msg.timestamp) })
+    }
+
+    // Unread divider (inserted before the first unread message)
+    if (msg.id === firstUnreadId) {
+      grouped.push({ type: 'divider' })
+    }
+
+    const last = grouped[grouped.length - 1]
+    const canAppend =
+      last &&
+      last.type === 'message' &&
+      last.from_node_id === msg.from_node_id &&
+      last.direction === msg.direction &&
+      !msg.reply_id
+
+    if (canAppend) {
       last.texts.push({ id: msg.id, text: msg.text, time: msg.timestamp, reply_id: msg.reply_id })
     } else {
-      acc.push({
+      grouped.push({
+        type: 'message',
         from_node_id: msg.from_node_id,
         direction: msg.direction,
         texts: [{ id: msg.id, text: msg.text, time: msg.timestamp, reply_id: msg.reply_id }],
         firstTime: msg.timestamp,
       })
     }
-    return acc
-  }, [])
+  }
 
   return (
     <div className="messages-view">
@@ -136,10 +201,29 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode }) {
               <div>No messages yet.</div>
             </div>
           )}
-          {grouped.map((group, i) => {
+          {grouped.map((item, i) => {
+            if (item.type === 'day') {
+              return (
+                <div key={`day-${item.label}`} className="msg-day-divider">
+                  <span>{item.label}</span>
+                </div>
+              )
+            }
+
+            if (item.type === 'divider') {
+              return (
+                <div key="unread-divider" className="msg-unread-divider" ref={dividerRef}>
+                  <span>New messages</span>
+                </div>
+              )
+            }
+
+            const group = item
             const isOut = group.direction === 'out'
             const node = isOut ? null : nodes[group.from_node_id]
-            const label = isOut ? 'You' : (node?.long_name || node?.short_name || group.from_node_id.slice(-4).toUpperCase())
+            const label = isOut
+              ? 'You'
+              : node?.long_name || node?.short_name || group.from_node_id.slice(-4).toUpperCase()
             return (
               <div key={i} className={`msg-group${isOut ? ' msg-group--out' : ''}`}>
                 <NodeAvatar
@@ -161,15 +245,19 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode }) {
                   {group.texts.map((t) => {
                     const replyTo = t.reply_id ? messageById[t.reply_id] : null
                     const replyNode = replyTo ? nodes[replyTo.from_node_id] : null
-                    const replyLabel = replyTo?.direction === 'out'
-                      ? 'You'
-                      : (replyNode?.short_name || replyTo?.from_node_id?.slice(-4).toUpperCase())
+                    const replyLabel =
+                      replyTo?.direction === 'out'
+                        ? 'You'
+                        : replyNode?.short_name || replyTo?.from_node_id?.slice(-4).toUpperCase()
                     return (
                       <div key={t.id}>
                         {replyTo && (
                           <div className="msg-reply-quote">
                             <span className="msg-reply-sender">↩ {replyLabel}:</span>
-                            <span className="msg-reply-text">{replyTo.text.slice(0, 80)}{replyTo.text.length > 80 ? '…' : ''}</span>
+                            <span className="msg-reply-text">
+                              {replyTo.text.slice(0, 80)}
+                              {replyTo.text.length > 80 ? '…' : ''}
+                            </span>
                           </div>
                         )}
                         <div className="msg-bubble">{t.text}</div>

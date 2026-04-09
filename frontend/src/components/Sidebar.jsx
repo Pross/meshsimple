@@ -27,7 +27,7 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
       <div className="sidebar-inner">
         <div className="sidebar-logo">
           <img src="/favicon.svg" className="sidebar-logo-icon" alt="" />
-          <span className="sidebar-logo-text">meshsimple</span>
+          <span className="sidebar-logo-text">MeshSimple</span>
         </div>
 
         <nav className="sidebar-nav">

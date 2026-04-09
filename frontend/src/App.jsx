@@ -44,7 +44,7 @@ export default function App() {
 
   // Update tab title with unread count
   useEffect(() => {
-    document.title = unreadCount > 0 ? `[${unreadCount}] meshsimple` : 'meshsimple'
+    document.title = unreadCount > 0 ? `[${unreadCount}] MeshSimple` : 'MeshSimple'
   }, [unreadCount])
 
   const handleWsMessage = useCallback((event) => {
@@ -149,6 +149,7 @@ export default function App() {
             nodes={nodes}
             myNodeId={myNodeId}
             onSelectNode={handleSelectNode}
+            unreadCount={unreadCount}
           />
         )}
 

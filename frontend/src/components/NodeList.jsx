@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NodeAvatar } from './Sidebar'
-import { relativeTime } from '../utils/nodeColor'
+import { relativeTime, nodeActivity } from '../utils/nodeColor'
 
 export default function NodeList({ nodes, myNodeId, onSelectNode }) {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('last_heard')
 
   const sorted = Object.values(nodes)
+    .filter((n) => nodeActivity(n.last_heard) !== 'old' || n.node_id === myNodeId)
     .filter((n) => {
       if (!search) return true
       const q = search.toLowerCase()
@@ -51,8 +52,9 @@ export default function NodeList({ nodes, myNodeId, onSelectNode }) {
       <div className="nodes-list">
         {sorted.map((node) => {
           const isOwn = node.node_id === myNodeId
+          const activity = nodeActivity(node.last_heard)
           return (
-            <div key={node.node_id} className="nodes-row" onClick={() => onSelectNode(node.node_id)}>
+            <div key={node.node_id} className={`nodes-row${activity === 'known' ? ' nodes-row--dim' : ''}`} onClick={() => onSelectNode(node.node_id)}>
               <NodeAvatar node={node} isOwn={isOwn} size={40} />
               <div className="nodes-row-info">
                 <div className="nodes-row-name">

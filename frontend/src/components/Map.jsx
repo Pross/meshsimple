@@ -4,7 +4,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
-import { nodeColor } from '../utils/nodeColor'
+import { nodeColor, nodeActivity } from '../utils/nodeColor'
 
 function makeNodeIcon(node, isOwn) {
   const label = node.short_name || node.node_id.slice(-4).toUpperCase()
@@ -61,7 +61,9 @@ function FlyTo({ target }) {
 }
 
 export default function Map({ nodes, myNodeId, onSelectNode, flyTarget, nodePanelCollapsed }) {
-  const nodesWithPos = Object.values(nodes).filter((n) => n.lat && n.lon)
+  const nodesWithPos = Object.values(nodes).filter(
+    (n) => n.lat && n.lon && (nodeActivity(n.last_heard) === 'active' || n.node_id === myNodeId)
+  )
 
   return (
     <MapContainer

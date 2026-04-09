@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { NodeAvatar } from './Sidebar'
-import { relativeTime } from '../utils/nodeColor'
+import { relativeTime, nodeActivity } from '../utils/nodeColor'
 
 export default function MapNodePanel({ nodes, myNodeId, onSelectNode, collapsed, onToggleCollapse }) {
   const [search, setSearch] = useState('')
 
   const sorted = Object.values(nodes)
+    .filter((n) => nodeActivity(n.last_heard) === 'active' || n.node_id === myNodeId)
     .filter((n) => {
       if (!search) return true
       const q = search.toLowerCase()

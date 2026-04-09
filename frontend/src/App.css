@@ -457,6 +457,44 @@ input, select { font: inherit; }
 .msg-reply-sender { font-weight: 600; flex-shrink: 0; }
 .msg-reply-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.msg-day-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.msg-day-divider::before,
+.msg-day-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.msg-unread-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.msg-unread-divider::before,
+.msg-unread-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
 .msg-group--out .msg-bubble {
   background: var(--badge-bg);
   border-color: transparent;
@@ -599,6 +637,7 @@ input, select { font: inherit; }
   background: var(--surface);
 }
 .nodes-row:hover { background: var(--surface2); }
+.nodes-row--dim { opacity: 0.45; }
 
 .nodes-row-info { flex: 1; min-width: 0; }
 .nodes-row-name {
