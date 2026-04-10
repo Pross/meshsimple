@@ -60,7 +60,26 @@ function FlyTo({ target }) {
   return null
 }
 
-export default function Map({ nodes, myNodeId, onSelectNode, flyTarget, nodePanelCollapsed }) {
+const TILES = {
+  light: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+}
+
+function resolvedTheme(theme) {
+  if (theme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return theme
+}
+
+export default function Map({ nodes, myNodeId, onSelectNode, flyTarget, nodePanelCollapsed, theme }) {
+  const tiles = TILES[resolvedTheme(theme)] ?? TILES.light
   const nodesWithPos = Object.values(nodes).filter(
     (n) => n.lat && n.lon && (nodeActivity(n.last_heard) === 'active' || n.node_id === myNodeId)
   )
@@ -72,8 +91,9 @@ export default function Map({ nodes, myNodeId, onSelectNode, flyTarget, nodePane
       style={{ height: '100%', width: '100%' }}
     >
       <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        key={tiles.url}
+        url={tiles.url}
+        attribution={tiles.attribution}
       />
       <FitBounds nodes={nodesWithPos} />
       <InvalidateSize trigger={nodePanelCollapsed} />

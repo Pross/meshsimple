@@ -137,6 +137,7 @@ export default function App() {
                 onSelectNode={handleSelectNode}
                 flyTarget={flyTarget}
                 nodePanelCollapsed={nodePanelCollapsed}
+                theme={theme}
               />
               {selectedNode && (
                 <NodePanel
