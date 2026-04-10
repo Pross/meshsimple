@@ -16,8 +16,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('map')
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [flyTarget, setFlyTarget] = useState(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [nodePanelCollapsed, setNodePanelCollapsed] = useState(false)
+  const isMobile = () => window.innerWidth < 640
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => isMobile())
+  const [nodePanelCollapsed, setNodePanelCollapsed] = useState(() => isMobile())
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadFading, setUnreadFading] = useState(false)
   const [theme, setTheme] = useTheme()
@@ -105,6 +106,12 @@ export default function App() {
         collapsed={sidebarCollapsed}
       />
 
+      {/* Backdrop — closes sidebar on mobile when tapping outside */}
+      {!sidebarCollapsed && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarCollapsed(true)} />
+      )}
+
+      {/* Desktop toggle strip */}
       <button
         className="sidebar-toggle"
         onClick={() => setSidebarCollapsed((v) => !v)}
@@ -112,6 +119,13 @@ export default function App() {
       >
         {sidebarCollapsed ? '›' : '‹'}
       </button>
+
+      {/* Mobile hamburger — only on map tab; other tabs inject it into their toolbar */}
+      {sidebarCollapsed && activeTab === 'map' && (
+        <button className="mobile-menu-btn" onClick={() => setSidebarCollapsed(false)}>
+          ☰
+        </button>
+      )}
 
       <div className="main-content">
         {activeTab === 'map' && (
@@ -150,6 +164,7 @@ export default function App() {
             myNodeId={myNodeId}
             onSelectNode={handleSelectNode}
             unreadCount={unreadCount}
+            onMenuOpen={sidebarCollapsed ? () => setSidebarCollapsed(false) : null}
           />
         )}
 
@@ -158,6 +173,7 @@ export default function App() {
             nodes={nodes}
             myNodeId={myNodeId}
             onSelectNode={handleSelectNode}
+            onMenuOpen={sidebarCollapsed ? () => setSidebarCollapsed(false) : null}
           />
         )}
       </div>

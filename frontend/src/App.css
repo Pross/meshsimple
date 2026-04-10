@@ -382,6 +382,9 @@ input, select { font: inherit; }
   font-weight: 600;
   font-size: 15px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: var(--surface);
 }
 
@@ -598,6 +601,7 @@ input, select { font: inherit; }
 
 .nodes-toolbar {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 12px;
   background: var(--surface);
@@ -605,14 +609,61 @@ input, select { font: inherit; }
 }
 
 .nodes-sort {
-  padding: 7px 10px;
+  padding: 0 10px;
+  height: 35.5px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--text);
   font-size: 13px;
   outline: none;
+  width: auto;
+  flex-shrink: 0;
+  cursor: pointer;
 }
+
+.sort-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sort-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sort-dropdown-arrow { font-size: 10px; color: var(--text-dim); }
+
+.sort-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  min-width: 130px;
+  overflow: hidden;
+}
+
+.sort-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sort-dropdown-item:hover { background: var(--surface2); }
+.sort-dropdown-item.active { color: var(--accent); font-weight: 600; }
 
 .nodes-count {
   padding: 8px 16px;
@@ -675,3 +726,83 @@ input, select { font: inherit; }
 .btn-small:hover { border-color: var(--accent); color: var(--accent); }
 .btn-close { background: transparent; border: none; font-size: 14px; padding: 2px 6px; }
 .btn-close:hover { color: #e53e3e; }
+
+/* Hidden on desktop, shown on mobile */
+.mobile-menu-btn { display: none; }
+.sidebar-backdrop { display: none; }
+.toolbar-menu-btn { display: none; }
+
+/* ── Mobile ── */
+@media (max-width: 639px) {
+  /* Sidebar overlays content on mobile instead of pushing it */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 1000;
+    box-shadow: var(--shadow);
+  }
+
+  /* Hide the thin strip toggle — replaced by hamburger below */
+  .sidebar-toggle {
+    display: none;
+  }
+
+  /* Hamburger inside toolbars (nodes, messages) */
+  .toolbar-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 35.5px;
+    height: 35.5px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 16px;
+  }
+
+  /* Hamburger button — visible when sidebar is collapsed */
+  .mobile-menu-btn {
+    display: flex;
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 1001;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Backdrop to close sidebar */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+  }
+
+  /* Main content takes full width */
+  .main-content {
+    width: 100%;
+  }
+
+  /* Hide node list panel in messages on mobile */
+  .msg-node-list {
+    display: none;
+  }
+
+  /* Remove right border from messages main when panel is hidden */
+  .messages-main {
+    border-right: none;
+  }
+}

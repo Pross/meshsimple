@@ -1,8 +1,50 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { NodeAvatar } from './Sidebar'
 import { relativeTime, nodeActivity } from '../utils/nodeColor'
 
-export default function NodeList({ nodes, myNodeId, onSelectNode }) {
+const SORT_OPTIONS = [
+  { value: 'last_heard', label: 'Last heard' },
+  { value: 'name',       label: 'Name' },
+  { value: 'hops',       label: 'Hops' },
+]
+
+function SortDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const selected = SORT_OPTIONS.find((o) => o.value === value)
+
+  return (
+    <div className="sort-dropdown" ref={ref}>
+      <button className="sort-dropdown-btn nodes-sort" onClick={() => setOpen((v) => !v)}>
+        {selected?.label} <span className="sort-dropdown-arrow">▾</span>
+      </button>
+      {open && (
+        <div className="sort-dropdown-menu">
+          {SORT_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              className={`sort-dropdown-item${o.value === value ? ' active' : ''}`}
+              onClick={() => { onChange(o.value); setOpen(false) }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function NodeList({ nodes, myNodeId, onSelectNode, onMenuOpen }) {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('last_heard')
 
@@ -35,6 +77,9 @@ export default function NodeList({ nodes, myNodeId, onSelectNode }) {
   return (
     <div className="nodes-view">
       <div className="nodes-toolbar">
+        {onMenuOpen && (
+          <button className="toolbar-menu-btn" onClick={onMenuOpen}>☰</button>
+        )}
         <input
           className="msg-node-search"
           placeholder="Search nodes..."
@@ -42,11 +87,7 @@ export default function NodeList({ nodes, myNodeId, onSelectNode }) {
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1 }}
         />
-        <select className="nodes-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="last_heard">Last heard</option>
-          <option value="name">Name</option>
-          <option value="hops">Hops</option>
-        </select>
+        <SortDropdown value={sortBy} onChange={setSortBy} />
       </div>
       <div className="nodes-count">Nodes ({sorted.length})</div>
       <div className="nodes-list">

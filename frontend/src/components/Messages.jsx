@@ -83,7 +83,7 @@ function NodeListPanel({ nodes, myNodeId, messageNodeIds, onSelectNode }) {
   )
 }
 
-export default function Messages({ messages, nodes, myNodeId, onSelectNode, unreadCount }) {
+export default function Messages({ messages, nodes, myNodeId, onSelectNode, unreadCount, onMenuOpen }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
@@ -193,7 +193,12 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
   return (
     <div className="messages-view">
       <div className="messages-main">
-        <div className="messages-header">Messages: Primary</div>
+        <div className="messages-header">
+          Messages: Primary
+          {onMenuOpen && (
+            <button className="toolbar-menu-btn" onClick={onMenuOpen}>☰</button>
+          )}
+        </div>
         <div className="messages-list">
           {grouped.length === 0 && (
             <div className="messages-empty">
