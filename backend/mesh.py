@@ -228,10 +228,9 @@ def connect_loop():
             _seed_nodes_from_interface(_interface)
             _read_own_firmware(_interface)
             # Keep thread alive — meshtastic uses pubsub callbacks
+            # Disconnects surface naturally as exceptions on the interface
             while True:
-                time.sleep(30)
-                # Ping to detect disconnects
-                _interface.localNode.getMetadata()
+                time.sleep(60)
         except Exception:
             logger.exception("Meshtastic connection failed, retrying in 5s")
             try:
