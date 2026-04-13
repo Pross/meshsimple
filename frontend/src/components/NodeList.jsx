@@ -48,7 +48,15 @@ export default function NodeList({ nodes, myNodeId, onSelectNode, onMenuOpen }) 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('last_heard')
 
-  const sorted = Object.values(nodes)
+  const allNodes = Object.values(nodes)
+  const totalCount = allNodes.length
+  const recentCount = allNodes.filter((n) => nodeActivity(n.last_heard) === 'active').length
+  const knownCount = allNodes.filter((n) => nodeActivity(n.last_heard) === 'known').length
+  const oldCount = allNodes.filter((n) => nodeActivity(n.last_heard) === 'old' && n.node_id !== myNodeId).length
+  const activeCount = allNodes.filter((n) => nodeActivity(n.last_heard) !== 'old' || n.node_id === myNodeId).length
+  const tooltip = `Heard in last 24h: ${recentCount} · Last 7 days: ${knownCount} · Older / never seen: ${oldCount} (hidden)`
+
+  const sorted = allNodes
     .filter((n) => nodeActivity(n.last_heard) !== 'old' || n.node_id === myNodeId)
     .filter((n) => {
       if (!search) return true
@@ -89,7 +97,7 @@ export default function NodeList({ nodes, myNodeId, onSelectNode, onMenuOpen }) 
         />
         <SortDropdown value={sortBy} onChange={setSortBy} />
       </div>
-      <div className="nodes-count">Nodes ({sorted.length})</div>
+      <div className="nodes-count" title={tooltip}>Nodes {activeCount} active out of {totalCount} total</div>
       <div className="nodes-list">
         {sorted.map((node) => {
           const isOwn = node.node_id === myNodeId

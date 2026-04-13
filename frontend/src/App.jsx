@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { nodeActivity } from './utils/nodeColor'
 import Sidebar from './components/Sidebar'
 import Map from './components/Map'
 import MapNodePanel from './components/MapNodePanel'
@@ -97,7 +98,7 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        nodeCount={Object.keys(nodes).length}
+        nodeCount={Object.values(nodes).filter((n) => nodeActivity(n.last_heard) !== 'old').length}
         unreadCount={unreadCount}
         unreadFading={unreadFading}
         ownNode={ownNode}
