@@ -23,6 +23,7 @@ def run_migrations(eng):
         "ALTER TABLE nodes ADD COLUMN firmware_version VARCHAR",
         "ALTER TABLE messages ADD COLUMN reply_id INTEGER",
         "ALTER TABLE messages ADD COLUMN read_at DATETIME",
+        "CREATE TABLE IF NOT EXISTS message_reactions (id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER REFERENCES messages(id), node_id VARCHAR, emoji VARCHAR, timestamp DATETIME)",
     ]
     with eng.connect() as conn:
         for stmt in new_columns:

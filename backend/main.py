@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import Base, engine, run_migrations
-from backend.routes import nodes, messages, ws
+from backend.routes import nodes, messages, reactions, ws
 from backend import mesh
 
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +46,7 @@ app.add_middleware(
 
 app.include_router(nodes.router)
 app.include_router(messages.router)
+app.include_router(reactions.router)
 app.include_router(ws.router)
 
 static_dir = Path(__file__).parent / "static"

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,14 +7,24 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, update, func
 
 from backend.database import get_db
-from backend.models import Message, Node
+from backend.models import Message, MessageReaction, Node
 from backend import mesh
+
+DEFAULT_REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '😮']
 
 router = APIRouter()
 
 
+@router.get("/api/config")
+def get_config():
+    raw = os.environ.get("REACTION_EMOJIS", "")
+    emojis = [e.strip() for e in raw.split(",") if e.strip()] if raw else DEFAULT_REACTION_EMOJIS
+    return {"reaction_emojis": emojis}
+
+
 class SendMessageRequest(BaseModel):
     text: str
+    reply_id: int | None = None
 
 
 @router.get("/api/messages")
@@ -24,7 +35,22 @@ def list_messages(db: Session = Depends(get_db)):
         .order_by(Message.timestamp.desc())
         .limit(200)
     ).all()
-    return [m.to_dict() for m in reversed(messages)]
+    messages = list(reversed(messages))
+
+    msg_ids = [m.id for m in messages]
+    all_reactions = db.scalars(
+        select(MessageReaction).where(MessageReaction.message_id.in_(msg_ids))
+    ).all()
+    reactions_by_msg = {}
+    for r in all_reactions:
+        reactions_by_msg.setdefault(r.message_id, []).append(r.to_dict())
+
+    result = []
+    for m in messages:
+        d = m.to_dict()
+        d["reactions"] = reactions_by_msg.get(m.id, [])
+        result.append(d)
+    return result
 
 
 @router.get("/api/messages/unread-count")
@@ -74,6 +100,7 @@ async def send_message(body: SendMessageRequest, db: Session = Depends(get_db)):
         text=body.text,
         timestamp=datetime.now(timezone.utc),
         direction="out",
+        reply_id=body.reply_id,
     )
     db.add(msg)
     db.commit()

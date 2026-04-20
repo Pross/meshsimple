@@ -73,6 +73,19 @@ class Message(Base):
         }
 
 
+class MessageReaction(Base):
+    __tablename__ = "message_reactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"))
+    node_id: Mapped[str] = mapped_column(String)
+    emoji: Mapped[str] = mapped_column(String)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    def to_dict(self):
+        return {"emoji": self.emoji, "node_id": self.node_id}
+
+
 class Position(Base):
     __tablename__ = "positions"
 

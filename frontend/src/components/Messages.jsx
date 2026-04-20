@@ -3,6 +3,7 @@ import { NodeAvatar } from './Sidebar'
 import { relativeTime } from '../utils/nodeColor'
 
 const MAX_LENGTH = 200
+const DEFAULT_REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '😮']
 
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -87,8 +88,82 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
+  const [replyingTo, setReplyingTo] = useState(null)
+  const [reactionPickerFor, setReactionPickerFor] = useState(null)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [reactionEmojis, setReactionEmojis] = useState(DEFAULT_REACTION_EMOJIS)
+  const pickerRef = useRef(null)
+  const emojiPickerRef = useRef(null)
+  const inputRef = useRef(null)
+  const [reactionsMap, setReactionsMap] = useState({})
   const bottomRef = useRef(null)
   const dividerRef = useRef(null)
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((data) => { if (data.reaction_emojis?.length) setReactionEmojis(data.reaction_emojis) })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!reactionPickerFor) return
+    function handleClickOutside(e) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setReactionPickerFor(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [reactionPickerFor])
+
+  useEffect(() => {
+    if (!emojiPickerOpen) return
+    function handleClickOutside(e) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target)) {
+        setEmojiPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [emojiPickerOpen])
+
+  function insertEmoji(emoji) {
+    const input = inputRef.current
+    if (!input) return
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const next = text.slice(0, start) + emoji + text.slice(end)
+    if (next.length <= MAX_LENGTH) {
+      setText(next)
+      requestAnimationFrame(() => {
+        input.focus()
+        input.setSelectionRange(start + emoji.length, start + emoji.length)
+      })
+    }
+  }
+
+  // Seed reactionsMap from messages prop
+  useEffect(() => {
+    const map = {}
+    for (const m of messages) {
+      if (m.reactions?.length) map[m.id] = m.reactions
+    }
+    setReactionsMap((prev) => ({ ...map, ...prev }))
+  }, [messages])
+
+  async function handleReaction(messageId, emoji) {
+    setReactionPickerFor(null)
+    const res = await fetch(`/api/messages/${messageId}/reactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emoji }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setReactionsMap((prev) => ({ ...prev, [messageId]: updated }))
+    }
+  }
+
   // Snapshot unread count at mount — Messages remounts on each tab visit
   const unreadAtMount = useRef(unreadCount)
   const hasScrolledRef = useRef(false)
@@ -122,16 +197,19 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
     setSending(true)
     setError(null)
     try {
+      const payload = { text: text.trim() }
+      if (replyingTo) payload.reply_id = replyingTo.id
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.trim() }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const body = await res.json()
         throw new Error(body.detail || 'Send failed')
       }
       setText('')
+      setReplyingTo(null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -255,6 +333,7 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
                       replyTo?.direction === 'out'
                         ? 'You'
                         : replyNode?.short_name || replyTo?.from_node_id?.slice(-4).toUpperCase()
+                    const bubbleLabel = isOut ? 'You' : label
                     return (
                       <div key={t.id}>
                         {replyTo && (
@@ -266,7 +345,47 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
                             </span>
                           </div>
                         )}
-                        <div className="msg-bubble">{t.text}</div>
+                        <div className="msg-bubble-wrap">
+                          <div
+                            className="msg-bubble"
+                            onClick={() => setReplyingTo({ id: t.id, text: t.text, label: bubbleLabel })}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {t.text}
+                          </div>
+                          <button
+                            className="msg-reaction-trigger"
+                            onClick={(e) => { e.stopPropagation(); setReactionPickerFor(reactionPickerFor === t.id ? null : t.id) }}
+                            title="React"
+                          >+</button>
+                          {reactionPickerFor === t.id && (
+                            <div className="msg-reaction-picker" ref={pickerRef}>
+                              {reactionEmojis.map((emoji) => (
+                                <button key={emoji} onClick={() => handleReaction(t.id, emoji)}>{emoji}</button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {(reactionsMap[t.id]?.length > 0) && (
+                          <div className="msg-reactions">
+                            {Object.entries(
+                              reactionsMap[t.id].reduce((acc, r) => {
+                                acc[r.emoji] = acc[r.emoji] || { count: 0, mine: false }
+                                acc[r.emoji].count++
+                                if (r.node_id === myNodeId) acc[r.emoji].mine = true
+                                return acc
+                              }, {})
+                            ).map(([emoji, { count, mine }]) => (
+                              <button
+                                key={emoji}
+                                className={`msg-reaction-pill${mine ? ' msg-reaction-pill--mine' : ''}`}
+                                onClick={() => handleReaction(t.id, emoji)}
+                              >
+                                {emoji} {count}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -277,9 +396,34 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
           <div ref={bottomRef} />
         </div>
         <form className="message-form" onSubmit={handleSend}>
+          {replyingTo && (
+            <div className="msg-reply-bar">
+              <span className="msg-reply-bar-label">↩ Replying to {replyingTo.label}:</span>
+              <span className="msg-reply-bar-text">
+                {replyingTo.text.slice(0, 80)}{replyingTo.text.length > 80 ? '…' : ''}
+              </span>
+              <button type="button" className="msg-reply-bar-cancel" onClick={() => setReplyingTo(null)}>×</button>
+            </div>
+          )}
           {error && <div className="message-error">{error}</div>}
           <div className="message-input-row">
+            <div className="msg-compose-emoji-wrap" ref={emojiPickerRef}>
+              <button
+                type="button"
+                className="msg-compose-emoji-btn"
+                onClick={() => setEmojiPickerOpen((o) => !o)}
+                title="Emoji"
+              >☺</button>
+              {emojiPickerOpen && (
+                <div className="msg-compose-emoji-picker">
+                  {reactionEmojis.map((emoji) => (
+                    <button key={emoji} type="button" onClick={() => insertEmoji(emoji)}>{emoji}</button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
+              ref={inputRef}
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
