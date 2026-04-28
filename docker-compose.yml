@@ -9,6 +9,7 @@ services:
       - MESHTASTIC_HOST=${MESHTASTIC_HOST}
       - MESHTASTIC_PORT=${MESHTASTIC_PORT:-4403}
       - DB_PATH=/app/data/meshsimple.db
+      - REACTION_EMOJIS=${REACTION_EMOJIS:-}
     restart: unless-stopped
 
 volumes:

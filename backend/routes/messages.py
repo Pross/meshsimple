@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,16 +9,7 @@ from backend.database import get_db
 from backend.models import Message, MessageReaction, Node
 from backend import mesh
 
-DEFAULT_REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '😮']
-
 router = APIRouter()
-
-
-@router.get("/api/config")
-def get_config():
-    raw = os.environ.get("REACTION_EMOJIS", "")
-    emojis = [e.strip() for e in raw.split(",") if e.strip()] if raw else DEFAULT_REACTION_EMOJIS
-    return {"reaction_emojis": emojis}
 
 
 class SendMessageRequest(BaseModel):

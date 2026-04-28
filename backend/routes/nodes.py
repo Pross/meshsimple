@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -8,10 +10,17 @@ from backend import mesh
 
 router = APIRouter()
 
+DEFAULT_REACTION_EMOJIS = ['👍', '👎', '❤️', '😂', '😮']
+
 
 @router.get("/api/config")
 def get_config():
-    return {"my_node_id": mesh.get_my_node_id()}
+    raw = os.environ.get("REACTION_EMOJIS", "")
+    emojis = [e.strip() for e in raw.split(",") if e.strip()] if raw else DEFAULT_REACTION_EMOJIS
+    return {
+        "my_node_id": mesh.get_my_node_id(),
+        "reaction_emojis": emojis,
+    }
 
 
 @router.get("/api/nodes")
