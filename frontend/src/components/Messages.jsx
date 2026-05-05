@@ -320,7 +320,10 @@ export default function Messages({ messages, nodes, myNodeId, onSelectNode, unre
                       className="msg-group-sender"
                       onClick={() => !isOut && onSelectNode(group.from_node_id)}
                       style={{ cursor: isOut ? 'default' : 'pointer' }}
-                      title={!isOut && node?.hops_away != null ? `${node.hops_away} hop${node.hops_away !== 1 ? 's' : ''} from you` : undefined}
+                      title={!isOut ? [
+                        node?.hops_away != null && `${node.hops_away} hop${node.hops_away !== 1 ? 's' : ''} from you`,
+                        group.firstTime && `Received: ${new Date(group.firstTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`,
+                      ].filter(Boolean).join('\n') || undefined : undefined}
                     >
                       {label}
                     </span>

@@ -74,12 +74,14 @@ def on_receive(packet, interface):
                 node = _upsert_node(
                     db, from_id, last_heard=datetime.now(timezone.utc), snr=snr
                 )
+                rx_time = packet.get("rxTime")
+                received_at = datetime.fromtimestamp(rx_time, tz=timezone.utc) if rx_time else datetime.now(timezone.utc)
                 msg = Message(
                     from_node_id=from_id,
                     to_node_id=None,
                     channel=packet.get("channel", 0),
                     text=text,
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=received_at,
                     direction="in",
                     reply_id=reply_id,
                 )
