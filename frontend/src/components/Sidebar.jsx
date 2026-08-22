@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { nodeColor } from '../utils/nodeColor'
-import { isUpdateAvailable } from '../utils/firmware'
-
-const OTA_ACTIVE_STATES = ['starting', 'checking', 'downloading', 'rebooting', 'flashing']
+import { isUpdateAvailable, splitFirmwareVersion } from '../utils/firmware'
 
 const NAV_ITEMS = [
   { id: 'messages', label: 'Messages' },
@@ -25,9 +23,16 @@ function NodeAvatar({ node, isOwn, size = 36 }) {
   )
 }
 
-export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, latestFirmware, theme, onThemeChange, collapsed }) {
+export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, latestFirmware, theme, onThemeChange, collapsed, onOpenFirmwareUpdate }) {
   const [otaStatus, setOtaStatus] = useState(null)
-  const otaActive = otaStatus && OTA_ACTIVE_STATES.includes(otaStatus.state)
+  const otaActive = otaStatus && otaStatus.phase !== 'idle' && !otaStatus.done
+
+  useEffect(() => {
+    // Picks up an update already running (e.g. started from the firmware
+    // page, or from before a page reload) so the badge stays disabled and
+    // the status line shows even if the user isn't on that page.
+    fetch('/api/ota/status').then((r) => r.json()).then(setOtaStatus).catch(console.error)
+  }, [])
 
   useEffect(() => {
     if (!otaActive) return
@@ -36,25 +41,6 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
     }, 2000)
     return () => clearInterval(timer)
   }, [otaActive])
-
-  useEffect(() => {
-    if (!otaStatus || otaActive) return
-    // Clear the terminal (success/error) message after a while rather than
-    // leaving it stuck in the sidebar forever.
-    const timer = setTimeout(() => setOtaStatus(null), 20000)
-    return () => clearTimeout(timer)
-  }, [otaStatus, otaActive])
-
-  function handleUpdateClick() {
-    if (otaActive) return
-    if (!window.confirm(
-      `Update firmware to ${latestFirmware}?\n\nThe device will reboot and be unreachable for a minute or two while the new firmware is sent over WiFi.`
-    )) return
-    fetch('/api/ota/start', { method: 'POST' })
-      .then((r) => r.json())
-      .then(setOtaStatus)
-      .catch(console.error)
-  }
 
   return (
     <div className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
@@ -114,12 +100,20 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
               {ownNode.firmware_version && (
                 <div className="sidebar-stat">
                   <span className="sidebar-stat-icon">⚙</span>
-                  {ownNode.firmware_version}
+                  {(() => {
+                    const { version, hash } = splitFirmwareVersion(ownNode.firmware_version)
+                    return (
+                      <span>
+                        <strong className="sidebar-stat-fw-version">{version}</strong>
+                        {hash && <span className="sidebar-stat-fw-hash">.{hash}</span>}
+                      </span>
+                    )
+                  })()}
                   {isUpdateAvailable(ownNode.firmware_version, latestFirmware) && (
                     <button
                       className="sidebar-stat-update"
-                      title={otaActive ? 'Update in progress' : `Update available: ${latestFirmware} (click to update)`}
-                      onClick={handleUpdateClick}
+                      title={otaActive ? 'Update in progress' : `Update available: ${latestFirmware} (click for details)`}
+                      onClick={onOpenFirmwareUpdate}
                       disabled={otaActive}
                     >
                       !
@@ -127,9 +121,9 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
                   )}
                 </div>
               )}
-              {otaStatus && (
-                <div className={`sidebar-ota-status${otaStatus.state === 'error' ? ' sidebar-ota-status--error' : ''}`}>
-                  {otaStatus.detail || otaStatus.state}
+              {otaActive && (
+                <div className="sidebar-ota-status">
+                  {otaStatus.detail}{otaStatus.percent != null ? ` (${otaStatus.percent}%)` : ''}
                 </div>
               )}
             </div>

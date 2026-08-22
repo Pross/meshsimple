@@ -207,6 +207,8 @@ input, select { font: inherit; }
   color: var(--text-dim);
 }
 .sidebar-stat-icon { font-size: 13px; }
+.sidebar-stat-fw-version { color: var(--text); font-weight: 700; }
+.sidebar-stat-fw-hash { color: var(--text-dim); }
 .sidebar-stat-update {
   display: inline-flex;
   align-items: center;
@@ -231,6 +233,163 @@ input, select { font: inherit; }
   margin-top: 2px;
 }
 .sidebar-ota-status--error { color: #dc2626; }
+
+/* ── Firmware update page ── */
+.firmware-page {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 40px 16px;
+}
+
+.firmware-page-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.firmware-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.firmware-page-header h2 { font-size: 18px; }
+
+.firmware-page-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+.firmware-page-close:hover { color: var(--text); }
+
+.firmware-page-versions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.firmware-page-version { flex: 1; }
+.firmware-page-arrow { color: var(--text-dim); font-size: 18px; }
+.firmware-page-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.firmware-page-value { font-size: 15px; font-weight: 600; }
+
+.firmware-page-warning {
+  margin-bottom: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.firmware-page-warning a { color: #d97706; }
+
+.firmware-page-notes {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.firmware-page-notes pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 4px 0 8px;
+}
+.firmware-page-notes a { font-size: 13px; color: var(--accent); text-decoration: none; }
+.firmware-page-notes a:hover { text-decoration: underline; }
+
+.firmware-page-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.firmware-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+.firmware-btn:disabled { cursor: default; opacity: 0.7; }
+.firmware-btn--cancel { background: var(--surface2); color: var(--text); }
+.firmware-btn--cancel:hover:not(:disabled) { background: var(--border); }
+.firmware-btn--deploy { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.firmware-btn--deploy:hover { filter: brightness(1.05); }
+
+.firmware-page-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.firmware-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.firmware-step--done { color: var(--text); }
+.firmware-step--active { color: var(--text); font-weight: 600; }
+.firmware-step--error { color: #dc2626; font-weight: 600; }
+
+.firmware-step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+.firmware-step--done .firmware-step-icon { background: var(--badge-bg); color: var(--badge-text); border-color: transparent; }
+.firmware-step--active .firmware-step-icon { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.firmware-step--error .firmware-step-icon { background: #dc2626; color: #fff; border-color: transparent; }
+
+.firmware-step-percent { margin-left: auto; color: var(--text-dim); font-weight: 400; }
+
+.firmware-page-result {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.firmware-page-result--error { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
 
 /* Theme switcher */
 .sidebar-theme {

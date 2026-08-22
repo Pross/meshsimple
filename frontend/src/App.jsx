@@ -6,6 +6,7 @@ import MapNodePanel from './components/MapNodePanel'
 import NodeList from './components/NodeList'
 import NodePanel from './components/NodePanel'
 import Messages from './components/Messages'
+import FirmwareUpdatePage from './components/FirmwareUpdatePage'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useTheme } from './hooks/useTheme'
 import './App.css'
@@ -21,6 +22,7 @@ export default function App() {
   const isMobile = () => window.innerWidth < 640
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => isMobile())
   const [nodePanelCollapsed, setNodePanelCollapsed] = useState(() => isMobile())
+  const [showFirmwareUpdate, setShowFirmwareUpdate] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadFading, setUnreadFading] = useState(false)
   const [theme, setTheme] = useTheme()
@@ -110,6 +112,7 @@ export default function App() {
         theme={theme}
         onThemeChange={setTheme}
         collapsed={sidebarCollapsed}
+        onOpenFirmwareUpdate={() => setShowFirmwareUpdate(true)}
       />
 
       {/* Backdrop — closes sidebar on mobile when tapping outside */}
@@ -134,6 +137,14 @@ export default function App() {
       )}
 
       <div className="main-content">
+        {showFirmwareUpdate && (
+          <FirmwareUpdatePage
+            ownNode={ownNode}
+            latestFirmware={latestFirmware}
+            onClose={() => setShowFirmwareUpdate(false)}
+          />
+        )}
+
         {activeTab === 'map' && (
           <div className="map-area">
             <div className="map-wrapper">

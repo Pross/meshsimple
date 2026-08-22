@@ -10,3 +10,14 @@ export function isUpdateAvailable(current, latest) {
   if (lMin !== cMin) return lMin > cMin
   return lPatch > cPatch
 }
+
+// "2.7.26.54e0d8d" -> { version: "2.7.26", hash: "54e0d8d" }, so the version
+// number can be styled more prominently than the build hash suffix. Splits
+// on the *last* dot rather than assuming a fixed major.minor.patch shape --
+// the hash is always the final segment, however many numeric parts precede it.
+export function splitFirmwareVersion(value) {
+  if (!value) return { version: value, hash: '' }
+  const lastDot = value.lastIndexOf('.')
+  if (lastDot === -1) return { version: value, hash: '' }
+  return { version: value.slice(0, lastDot), hash: value.slice(lastDot + 1) }
+}

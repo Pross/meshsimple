@@ -2,7 +2,8 @@ fastapi>=0.111
 uvicorn[standard]>=0.29
 sqlalchemy>=2.0
 # meshtastic and its deps (excluding pyobjc which fails on macOS system Python)
-meshtastic>=2.3
+# >=2.7.11 for meshtastic.ota.ESP32WiFiOTA / Node.startOTA (unified WiFi OTA)
+meshtastic>=2.7.11
 bleak
 packaging
 protobuf

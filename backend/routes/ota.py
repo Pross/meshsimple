@@ -1,8 +1,14 @@
 from fastapi import APIRouter, HTTPException
 
 from backend import ota
+from backend import firmware
 
 router = APIRouter()
+
+
+@router.get("/api/firmware/latest")
+def latest_firmware():
+    return firmware.get_latest()
 
 
 @router.post("/api/ota/start")
