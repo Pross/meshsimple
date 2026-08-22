@@ -209,8 +209,9 @@ def _read_own_firmware(interface):
         firmware = getattr(interface.metadata, "firmware_version", None)
         if firmware:
             with SessionLocal() as db:
-                _upsert_node(db, _my_node_id, firmware_version=firmware)
+                node = _upsert_node(db, _my_node_id, firmware_version=firmware)
             logger.info("Firmware version: %s", firmware)
+            _schedule_broadcast({"type": "node_update", "data": node.to_dict()})
     except Exception:
         logger.debug("Could not read firmware version")
 
@@ -233,10 +234,13 @@ def connect_loop():
                 logger.info("My node ID: %s", _my_node_id)
             _seed_nodes_from_interface(_interface)
             _read_own_firmware(_interface)
-            # Keep thread alive — meshtastic uses pubsub callbacks
-            # Disconnects surface naturally as exceptions on the interface
+            # The reader thread only clears isConnected on disconnect (see
+            # meshtastic.stream_interface.__reader) -- it does not raise
+            # here, so poll for it explicitly to notice a dropped connection
+            # (e.g. a device reboot) and trigger a reconnect below.
             while True:
-                time.sleep(60)
+                if not _interface.isConnected.wait(timeout=5):
+                    raise RuntimeError("Lost connection to Meshtastic device")
         except Exception:
             logger.exception("Meshtastic connection failed, retrying in 5s")
             try:

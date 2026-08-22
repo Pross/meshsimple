@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import Base, engine, run_migrations
-from backend.routes import nodes, messages, reactions, ws
+from backend.routes import nodes, messages, reactions, ws, ota
 from backend import mesh
 from backend import firmware
 
@@ -51,6 +51,7 @@ app.include_router(nodes.router)
 app.include_router(messages.router)
 app.include_router(reactions.router)
 app.include_router(ws.router)
+app.include_router(ota.router)
 
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():

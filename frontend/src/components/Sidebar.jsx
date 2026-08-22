@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { nodeColor } from '../utils/nodeColor'
 import { isUpdateAvailable } from '../utils/firmware'
+
+const OTA_ACTIVE_STATES = ['starting', 'checking', 'downloading', 'rebooting', 'flashing']
 
 const NAV_ITEMS = [
   { id: 'messages', label: 'Messages' },
@@ -23,6 +26,36 @@ function NodeAvatar({ node, isOwn, size = 36 }) {
 }
 
 export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, latestFirmware, theme, onThemeChange, collapsed }) {
+  const [otaStatus, setOtaStatus] = useState(null)
+  const otaActive = otaStatus && OTA_ACTIVE_STATES.includes(otaStatus.state)
+
+  useEffect(() => {
+    if (!otaActive) return
+    const timer = setInterval(() => {
+      fetch('/api/ota/status').then((r) => r.json()).then(setOtaStatus).catch(console.error)
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [otaActive])
+
+  useEffect(() => {
+    if (!otaStatus || otaActive) return
+    // Clear the terminal (success/error) message after a while rather than
+    // leaving it stuck in the sidebar forever.
+    const timer = setTimeout(() => setOtaStatus(null), 20000)
+    return () => clearTimeout(timer)
+  }, [otaStatus, otaActive])
+
+  function handleUpdateClick() {
+    if (otaActive) return
+    if (!window.confirm(
+      `Update firmware to ${latestFirmware}?\n\nThe device will reboot and be unreachable for a minute or two while the new firmware is sent over WiFi.`
+    )) return
+    fetch('/api/ota/start', { method: 'POST' })
+      .then((r) => r.json())
+      .then(setOtaStatus)
+      .catch(console.error)
+  }
+
   return (
     <div className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
       <div className="sidebar-inner">
@@ -83,10 +116,20 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
                   <span className="sidebar-stat-icon">⚙</span>
                   {ownNode.firmware_version}
                   {isUpdateAvailable(ownNode.firmware_version, latestFirmware) && (
-                    <span className="sidebar-stat-update" title={`Update available: ${latestFirmware}`}>
+                    <button
+                      className="sidebar-stat-update"
+                      title={otaActive ? 'Update in progress' : `Update available: ${latestFirmware} (click to update)`}
+                      onClick={handleUpdateClick}
+                      disabled={otaActive}
+                    >
                       !
-                    </span>
+                    </button>
                   )}
+                </div>
+              )}
+              {otaStatus && (
+                <div className={`sidebar-ota-status${otaStatus.state === 'error' ? ' sidebar-ota-status--error' : ''}`}>
+                  {otaStatus.detail || otaStatus.state}
                 </div>
               )}
             </div>

@@ -213,14 +213,24 @@ input, select { font: inherit; }
   justify-content: center;
   width: 14px;
   height: 14px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   background: #dc2626;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  cursor: default;
+  cursor: pointer;
 }
+.sidebar-stat-update:disabled { opacity: 0.5; cursor: default; }
+
+.sidebar-ota-status {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.sidebar-ota-status--error { color: #dc2626; }
 
 /* Theme switcher */
 .sidebar-theme {
