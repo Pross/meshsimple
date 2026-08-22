@@ -257,8 +257,13 @@ def connect_loop():
             # meshtastic.stream_interface.__reader) -- it does not raise
             # here, so poll for it explicitly to notice a dropped connection
             # (e.g. a device reboot) and trigger a reconnect below.
+            # NB: Event.wait(timeout) only blocks while the event is unset --
+            # once set (as it is for the whole healthy-connection lifetime)
+            # every call returns immediately, so this must sleep first rather
+            # than relying on wait() to pace the loop, or it busy-spins.
             while True:
-                if not _interface.isConnected.wait(timeout=5):
+                time.sleep(5)
+                if not _interface.isConnected.is_set():
                     raise RuntimeError("Lost connection to Meshtastic device")
         except Exception:
             logger.exception("Meshtastic connection failed, retrying in 5s")
