@@ -14,6 +14,7 @@ export default function App() {
   const [nodes, setNodes] = useState({})
   const [messages, setMessages] = useState([])
   const [myNodeId, setMyNodeId] = useState(null)
+  const [latestFirmware, setLatestFirmware] = useState(null)
   const [activeTab, setActiveTab] = useState('map')
   const [selectedNodeId, setSelectedNodeId] = useState(null)
   const [flyTarget, setFlyTarget] = useState(null)
@@ -41,7 +42,10 @@ export default function App() {
       .then((d) => setUnreadCount(d.count))
       .catch(console.error)
 
-    fetch('/api/config').then((r) => r.json()).then((d) => setMyNodeId(d.my_node_id || null)).catch(console.error)
+    fetch('/api/config').then((r) => r.json()).then((d) => {
+      setMyNodeId(d.my_node_id || null)
+      setLatestFirmware(d.latest_firmware_version || null)
+    }).catch(console.error)
   }, [])
 
   // Update tab title with unread count
@@ -102,6 +106,7 @@ export default function App() {
         unreadCount={unreadCount}
         unreadFading={unreadFading}
         ownNode={ownNode}
+        latestFirmware={latestFirmware}
         theme={theme}
         onThemeChange={setTheme}
         collapsed={sidebarCollapsed}

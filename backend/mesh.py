@@ -197,12 +197,16 @@ def _read_my_node_id(interface) -> str:
 
 
 def _read_own_firmware(interface):
-    """Read firmware version from own node via admin request."""
+    """Read firmware version from own node.
+
+    interface.metadata is populated automatically from the device's config
+    handshake on connect -- NOT from localNode.getMetadata(), whose admin
+    round-trip only prints the response for CLI use and always returns None.
+    """
     if not _my_node_id:
         return
     try:
-        meta = interface.localNode.getMetadata()
-        firmware = getattr(meta, "firmware_version", None)
+        firmware = getattr(interface.metadata, "firmware_version", None)
         if firmware:
             with SessionLocal() as db:
                 _upsert_node(db, _my_node_id, firmware_version=firmware)

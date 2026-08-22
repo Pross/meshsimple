@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.database import Base, engine, run_migrations
 from backend.routes import nodes, messages, reactions, ws
 from backend import mesh
+from backend import firmware
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI):
         thread.start()
     else:
         logging.warning("MESHTASTIC_HOST not set — running without device connection")
+
+    firmware.start()
 
     yield
 

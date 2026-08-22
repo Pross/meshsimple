@@ -1,4 +1,5 @@
 import { nodeColor } from '../utils/nodeColor'
+import { isUpdateAvailable } from '../utils/firmware'
 
 const NAV_ITEMS = [
   { id: 'messages', label: 'Messages' },
@@ -21,7 +22,7 @@ function NodeAvatar({ node, isOwn, size = 36 }) {
   )
 }
 
-export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, theme, onThemeChange, collapsed }) {
+export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount, unreadFading, ownNode, latestFirmware, theme, onThemeChange, collapsed }) {
   return (
     <div className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
       <div className="sidebar-inner">
@@ -81,6 +82,11 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
                 <div className="sidebar-stat">
                   <span className="sidebar-stat-icon">⚙</span>
                   {ownNode.firmware_version}
+                  {isUpdateAvailable(ownNode.firmware_version, latestFirmware) && (
+                    <span className="sidebar-stat-update" title={`Update available: ${latestFirmware}`}>
+                      → {latestFirmware}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

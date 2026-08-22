@@ -207,6 +207,7 @@ input, select { font: inherit; }
   color: var(--text-dim);
 }
 .sidebar-stat-icon { font-size: 13px; }
+.sidebar-stat-update { color: #d97706; font-weight: 600; }
 
 /* Theme switcher */
 .sidebar-theme {

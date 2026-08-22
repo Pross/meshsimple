@@ -7,6 +7,7 @@ from sqlalchemy import select
 from backend.database import get_db
 from backend.models import Node
 from backend import mesh
+from backend import firmware
 
 router = APIRouter()
 
@@ -20,6 +21,7 @@ def get_config():
     return {
         "my_node_id": mesh.get_my_node_id(),
         "reaction_emojis": emojis,
+        "latest_firmware_version": firmware.get_latest_version(),
     }
 
 
