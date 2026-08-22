@@ -207,7 +207,20 @@ input, select { font: inherit; }
   color: var(--text-dim);
 }
 .sidebar-stat-icon { font-size: 13px; }
-.sidebar-stat-update { color: #d97706; font-weight: 600; }
+.sidebar-stat-update {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: default;
+}
 
 /* Theme switcher */
 .sidebar-theme {

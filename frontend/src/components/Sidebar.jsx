@@ -84,7 +84,7 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
                   {ownNode.firmware_version}
                   {isUpdateAvailable(ownNode.firmware_version, latestFirmware) && (
                     <span className="sidebar-stat-update" title={`Update available: ${latestFirmware}`}>
-                      → {latestFirmware}
+                      !
                     </span>
                   )}
                 </div>
