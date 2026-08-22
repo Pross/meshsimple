@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DB_PATH = os.environ.get("DB_PATH", "./data/meshsimple.db")
@@ -8,6 +8,20 @@ engine = create_engine(
     f"sqlite:///{DB_PATH}",
     connect_args={"check_same_thread": False},
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    # Default rollback-journal mode takes an exclusive lock for the duration
+    # of every write, blocking concurrent reads -- with frequent small writes
+    # (a telemetry/position packet from any node commits immediately) this
+    # can starve reads like /api/nodes for seconds, worse as the node count
+    # grows. WAL lets readers proceed against the last-committed snapshot
+    # without waiting on in-progress writes.
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 
 SessionLocal = sessionmaker(bind=engine)
 

@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 from pubsub import pub
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from backend.database import SessionLocal
 from backend.models import Message, Node, Position
 
@@ -149,7 +150,17 @@ def on_receive(packet, interface):
 
 
 def _seed_nodes_from_interface(interface):
-    """Seed node table from the device's local node database on first connect."""
+    """Seed node table from the device's local node database on first connect.
+
+    One commit for the whole batch, not one per node -- committing ~200
+    times in a tight loop repeatedly takes SQLite's write lock and can starve
+    concurrent reads (e.g. the page's own /api/nodes) for many seconds on
+    slower storage. Uses an atomic INSERT ... ON CONFLICT per node rather
+    than a get-then-add check, since on_receive() can be upserting the same
+    node concurrently (as soon as the interface connects, live packets can
+    already be arriving) -- a plain get-then-add held open across the whole
+    batch would race against that and hit a UNIQUE constraint at commit.
+    """
     try:
         nodes = interface.nodes
         if not nodes:
@@ -167,18 +178,26 @@ def _seed_nodes_from_interface(interface):
                     if last_heard_ts
                     else None
                 )
-                _upsert_node(
-                    db,
-                    node_id,
-                    short_name=user.get("shortName"),
-                    long_name=user.get("longName"),
-                    hardware_model=user.get("hwModel"),
-                    lat=lat,
-                    lon=lon,
-                    last_heard=last_heard,
-                    snr=info.get("snr"),
-                    hops_away=info.get("hopsAway"),
-                )
+                values = {
+                    "node_id": node_id,
+                    "short_name": user.get("shortName"),
+                    "long_name": user.get("longName"),
+                    "hardware_model": user.get("hwModel"),
+                    "lat": lat,
+                    "lon": lon,
+                    "last_heard": last_heard,
+                    "snr": info.get("snr"),
+                    "hops_away": info.get("hopsAway"),
+                }
+                values = {k: v for k, v in values.items() if v is not None}
+                stmt = sqlite_insert(Node).values(**values)
+                update_cols = {k: v for k, v in values.items() if k != "node_id"}
+                if update_cols:
+                    stmt = stmt.on_conflict_do_update(index_elements=["node_id"], set_=update_cols)
+                else:
+                    stmt = stmt.on_conflict_do_nothing(index_elements=["node_id"])
+                db.execute(stmt)
+            db.commit()
         logger.info("Seeded %d nodes from device", len(nodes))
     except Exception:
         logger.exception("Failed to seed nodes from interface")
