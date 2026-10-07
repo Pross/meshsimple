@@ -1136,3 +1136,41 @@ input, select { font: inherit; }
     border-right: none;
   }
 }
+
+.firmware-page-channels {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.firmware-channel-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.firmware-channel-btn span { font-size: 12px; font-weight: 400; color: var(--text-dim); }
+.firmware-channel-btn:disabled { cursor: default; opacity: 0.6; }
+.firmware-channel-btn--active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.firmware-page-downgrade { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.firmware-page-downgrade input { margin-top: 3px; }
+
+.sidebar-stat-fw-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.sidebar-stat-fw-link:hover:not(:disabled) { text-decoration: underline; }
+.sidebar-stat-fw-link:disabled { cursor: default; }

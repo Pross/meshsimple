@@ -37,8 +37,15 @@ def _upsert_node(db, node_id: str, **kwargs) -> Node:
         node = Node(node_id=node_id)
         db.add(node)
     for key, value in kwargs.items():
-        if value is not None:
-            setattr(node, key, value)
+        if value is None:
+            continue
+        if key == "last_heard" and node.last_heard is not None:
+            current = node.last_heard
+            if current.tzinfo is None:  # SQLite hands back naive datetimes
+                current = current.replace(tzinfo=timezone.utc)
+            if value <= current:
+                continue  # a replayed older packet must not rewind last_heard
+        setattr(node, key, value)
     db.commit()
     db.refresh(node)
     return node
@@ -49,13 +56,44 @@ def _schedule_broadcast(data: dict):
         asyncio.run_coroutine_threadsafe(_broadcast_fn(data), _loop)
 
 
+def _hops_travelled(packet):
+    """Hops a packet travelled (hopStart - hopLimit), or None when unknown.
+
+    hopLimit alone is the hops *remaining*, not the hops used. hopStart of 0
+    means the sender didn't report it (older firmware), not a direct neighbour.
+    """
+    start = packet.get("hopStart")
+    limit = packet.get("hopLimit")
+    if not start or limit is None or limit > start:
+        return None
+    return start - limit
+
+
+def _packet_time(packet) -> datetime:
+    """When the radio received a packet; falls back to now if missing or in the future."""
+    now = datetime.now(timezone.utc)
+    rx_time = packet.get("rxTime")
+    if not rx_time:
+        return now
+    return min(datetime.fromtimestamp(rx_time, tz=timezone.utc), now)
+
+
 def on_receive(packet, interface):
     try:
         decoded = packet.get("decoded", {})
         portnum = decoded.get("portnum", "")
         from_id = packet.get("fromId") or _node_id_str(packet.get("from", 0))
         snr = packet.get("rxSnr")
-        hops_away = packet.get("hopLimit")
+        hops_away = _hops_travelled(packet)
+
+        if portnum in ("ADMIN_APP", "ROUTING_APP"):
+            # Replies to admin requests (e.g. the OTA request) -- the library
+            # fires these without surfacing the device's answer, so log it.
+            logger.info("%s from %s: %s", portnum, from_id, {k: v for k, v in decoded.items() if k not in ("payload", "portnum")})
+
+        # Packets queued on the device while we were disconnected are replayed
+        # on reconnect, so stamp with when the radio received it, not now.
+        heard_at = _packet_time(packet)
 
         with SessionLocal() as db:
             if portnum == "TEXT_MESSAGE_APP":
@@ -73,10 +111,9 @@ def on_receive(packet, interface):
                     return
                 reply_id = decoded.get("replyId") or decoded.get("reply_id") or None
                 node = _upsert_node(
-                    db, from_id, last_heard=datetime.now(timezone.utc), snr=snr
+                    db, from_id, last_heard=heard_at, snr=snr
                 )
-                rx_time = packet.get("rxTime")
-                received_at = datetime.fromtimestamp(rx_time, tz=timezone.utc) if rx_time else datetime.now(timezone.utc)
+                received_at = heard_at
                 msg = Message(
                     from_node_id=from_id,
                     to_node_id=None,
@@ -102,7 +139,7 @@ def on_receive(packet, interface):
                         from_id,
                         lat=lat,
                         lon=lon,
-                        last_heard=datetime.now(timezone.utc),
+                        last_heard=heard_at,
                         snr=snr,
                         hops_away=hops_away,
                     )
@@ -110,7 +147,7 @@ def on_receive(packet, interface):
                         node_id=from_id,
                         lat=lat,
                         lon=lon,
-                        timestamp=datetime.now(timezone.utc),
+                        timestamp=heard_at,
                     )
                     db.add(position)
                     db.commit()
@@ -124,7 +161,7 @@ def on_receive(packet, interface):
                     short_name=info.get("shortName"),
                     long_name=info.get("longName"),
                     hardware_model=info.get("hwModel"),
-                    last_heard=datetime.now(timezone.utc),
+                    last_heard=heard_at,
                     snr=snr,
                     hops_away=hops_away,
                 )
@@ -141,7 +178,7 @@ def on_receive(packet, interface):
                         from_id,
                         battery_level=battery,
                         voltage=voltage,
-                        last_heard=datetime.now(timezone.utc),
+                        last_heard=heard_at,
                     )
                     _schedule_broadcast({"type": "node_update", "data": node.to_dict()})
 

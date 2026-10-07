@@ -140,7 +140,7 @@ export default function App() {
         {showFirmwareUpdate && (
           <FirmwareUpdatePage
             ownNode={ownNode}
-            latestFirmware={latestFirmware}
+            onChannelChange={setLatestFirmware}
             onClose={() => setShowFirmwareUpdate(false)}
           />
         )}

@@ -1,14 +1,20 @@
 // Versions look like "2.7.15.567b8ea" (major.minor.patch.git-hash) — only the
 // numeric triple is orderable, the hash is just a build identifier.
-export function isUpdateAvailable(current, latest) {
-  if (!current || !latest) return false
+// Returns 1 if b is newer than a, -1 if older, 0 if the same, null if unparseable.
+export function compareVersions(a, b) {
+  if (!a || !b) return null
   const parse = (v) => v.split('.').slice(0, 3).map(Number)
-  const [cMaj, cMin, cPatch] = parse(current)
-  const [lMaj, lMin, lPatch] = parse(latest)
-  if ([cMaj, cMin, cPatch, lMaj, lMin, lPatch].some(Number.isNaN)) return false
-  if (lMaj !== cMaj) return lMaj > cMaj
-  if (lMin !== cMin) return lMin > cMin
-  return lPatch > cPatch
+  const pa = parse(a)
+  const pb = parse(b)
+  if ([...pa, ...pb].some(Number.isNaN)) return null
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pb[i] > pa[i] ? 1 : -1
+  }
+  return 0
+}
+
+export function isUpdateAvailable(current, latest) {
+  return compareVersions(current, latest) === 1
 }
 
 // "2.7.26.54e0d8d" -> { version: "2.7.26", hash: "54e0d8d" }, so the version
