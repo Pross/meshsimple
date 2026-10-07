@@ -15,6 +15,12 @@ from backend import firmware, mesh
 
 logger = logging.getLogger(__name__)
 
+# After startOTA the device reboots into the OTA loader, joins WiFi and only
+# then opens port 3232, which takes a variable amount of time. Connection
+# refused means nothing was sent, so it is safe to keep retrying for a while.
+OTA_LOADER_WAIT_SECONDS = 90
+OTA_LOADER_RETRY_INTERVAL = 2
+
 MIN_FIRMWARE_BYTES = 100_000
 MAX_FIRMWARE_BYTES = 4_000_000
 
@@ -102,14 +108,16 @@ def _wait_for_version(target_version, timeout=90, interval=3):
     close anyway, so that kind of drop isn't proof of failure by itself.
     """
     deadline = time.time() + timeout
-    my_id = mesh.get_my_node_id()
-    if not my_id:
-        return False
     while time.time() < deadline:
-        with SessionLocal() as db:
-            node = db.get(Node, my_id)
-            if node and node.firmware_version == target_version:
-                return True
+        # Re-read every pass: a firmware jump can change the node's ID (2.8
+        # derives it from the public key, not the MAC), and mesh.py switches
+        # to the new one on reconnect.
+        my_id = mesh.get_my_node_id()
+        if my_id:
+            with SessionLocal() as db:
+                node = db.get(Node, my_id)
+                if node and node.firmware_version == target_version:
+                    return True
         time.sleep(interval)
     return False
 
@@ -215,7 +223,6 @@ def _run_update(allow_downgrade=False):
 
             _set_phase("rebooting", "Rebooting device into OTA mode", target_version=version)
             interface.localNode.startOTA(admin_pb2.OTAMode.OTA_WIFI, ota.hash_bytes())
-            time.sleep(10)  # let it reboot and reconnect to wifi in OTA mode
 
             _set_phase("flashing", "Pushing firmware over the network", target_version=version, percent=0)
             sent_all = False
@@ -225,8 +232,27 @@ def _run_update(allow_downgrade=False):
                 sent_all = sent >= total
                 _set_percent(int(sent * 100 / total))
 
+            loader_deadline = time.time() + OTA_LOADER_WAIT_SECONDS
             try:
-                ota.update(progress_callback=on_progress)
+                while True:
+                    try:
+                        ota.update(progress_callback=on_progress)
+                        break
+                    except ConnectionRefusedError:
+                        if time.time() >= loader_deadline:
+                            # Our link to the device still being up means it never
+                            # rebooted, i.e. it ignored or rejected the OTA request
+                            # (see the ADMIN_APP/ROUTING_APP log lines).
+                            if interface.isConnected.is_set():
+                                raise RuntimeError(
+                                    "Device did not reboot into OTA mode after the request -- it "
+                                    "ignored or rejected it. Nothing was flashed."
+                                )
+                            raise RuntimeError(
+                                "Device rebooted but never opened the OTA port -- it likely "
+                                "timed out of OTA mode and reverted to its current firmware."
+                            )
+                        time.sleep(OTA_LOADER_RETRY_INTERVAL)
             except OTAError:
                 # An explicit rejection from the device (e.g. hash mismatch)
                 # -- not ambiguous, it really failed, no need to second-guess.
