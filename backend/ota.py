@@ -11,12 +11,9 @@ from meshtastic.ota import ESP32WiFiOTA, OTAError
 
 from backend.database import SessionLocal
 from backend.models import Node
-from backend import mesh
+from backend import firmware, mesh
 
 logger = logging.getLogger(__name__)
-
-FIRMWARE_REPO = "meshtastic/firmware"
-GITHUB_API = "https://api.github.com"
 
 MIN_FIRMWARE_BYTES = 100_000
 MAX_FIRMWARE_BYTES = 4_000_000
@@ -126,12 +123,6 @@ def _get_own_node():
         return node, my_id
 
 
-def _latest_release():
-    resp = requests.get(f"{GITHUB_API}/repos/{FIRMWARE_REPO}/releases/latest", timeout=15)
-    resp.raise_for_status()
-    return resp.json()
-
-
 def _find_asset(assets, name):
     asset = next((a for a in assets if a["name"] == name), None)
     if asset is None:
@@ -165,7 +156,7 @@ def _extract_ota_bin(zip_path, board, version, dest_path):
                 dst.write(chunk)
 
 
-def _run_update():
+def _run_update(allow_downgrade=False):
     try:
         _set_phase("checking", "Checking device and available firmware")
         node, my_id = _get_own_node()
@@ -188,9 +179,17 @@ def _run_update():
         if interface is None:
             raise RuntimeError("Not connected to the device")
 
-        release = _latest_release()
+        release = firmware.fetch_release(firmware.get_channel())
         version = release["tag_name"].lstrip("v")
         assets = release["assets"]
+
+        if version == current_version:
+            raise RuntimeError(f"Device is already running {version}")
+        if _version_tuple(version) < _version_tuple(current_version) and not allow_downgrade:
+            raise RuntimeError(
+                f"{version} is older than the device's {current_version} -- "
+                "confirm the downgrade to proceed."
+            )
 
         manifest_asset = _find_asset(assets, f"firmware-{version}.json")
         manifest = requests.get(manifest_asset["browser_download_url"], timeout=15).json()
@@ -254,12 +253,12 @@ def _run_update():
         _set_done(error=str(exc))
 
 
-def start_update():
+def start_update(allow_downgrade=False):
     """Returns False without starting anything if an update is already running."""
     with _status_lock:
         active = _status["phase"] != "idle" and not _status["done"]
         if active:
             return False
         _status.update(phase="checking", detail="", target_version=None, percent=None, done=False, error=None)
-    threading.Thread(target=_run_update, daemon=True).start()
+    threading.Thread(target=_run_update, args=(allow_downgrade,), daemon=True).start()
     return True
