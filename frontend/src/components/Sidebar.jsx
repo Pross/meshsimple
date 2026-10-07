@@ -103,10 +103,15 @@ export default function Sidebar({ activeTab, onTabChange, nodeCount, unreadCount
                   {(() => {
                     const { version, hash } = splitFirmwareVersion(ownNode.firmware_version)
                     return (
-                      <span>
+                      <button
+                        className="sidebar-stat-fw-link"
+                        title={otaActive ? 'Update in progress' : 'Firmware channels and updates'}
+                        onClick={onOpenFirmwareUpdate}
+                        disabled={otaActive}
+                      >
                         <strong className="sidebar-stat-fw-version">{version}</strong>
                         {hash && <span className="sidebar-stat-fw-hash">.{hash}</span>}
-                      </span>
+                      </button>
                     )
                   })()}
                   {isUpdateAvailable(ownNode.firmware_version, latestFirmware) && (
