@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     run_migrations(engine)
+    mesh.clamp_future_last_heard()
 
     # Give mesh.py access to the running event loop for thread-safe broadcasts
     loop = asyncio.get_event_loop()

@@ -43,8 +43,10 @@ def _upsert_node(db, node_id: str, **kwargs) -> Node:
             current = node.last_heard
             if current.tzinfo is None:  # SQLite hands back naive datetimes
                 current = current.replace(tzinfo=timezone.utc)
-            if value <= current:
-                continue  # a replayed older packet must not rewind last_heard
+            # A replayed older packet must not rewind last_heard -- unless the
+            # stored value is in the future (written while a clock was wrong).
+            if value <= current and current <= datetime.now(timezone.utc):
+                continue
         setattr(node, key, value)
     db.commit()
     db.refresh(node)
@@ -54,6 +56,27 @@ def _upsert_node(db, node_id: str, **kwargs) -> Node:
 def _schedule_broadcast(data: dict):
     if _broadcast_fn and _loop:
         asyncio.run_coroutine_threadsafe(_broadcast_fn(data), _loop)
+
+
+def clamp_future_last_heard():
+    """Cap stored last_heard values that are in the future at now.
+
+    Repairs rows written while the device clock was ahead; _upsert_node alone
+    only fixes a node once it is heard again.
+    """
+    now = datetime.now(timezone.utc)
+    fixed = 0
+    with SessionLocal() as db:
+        for node in db.scalars(select(Node).where(Node.last_heard.is_not(None))):
+            current = node.last_heard
+            if current.tzinfo is None:
+                current = current.replace(tzinfo=timezone.utc)
+            if current > now:
+                node.last_heard = now
+                fixed += 1
+        db.commit()
+    if fixed:
+        logger.info("Capped %d future last_heard values at now", fixed)
 
 
 def _hops_travelled(packet):
@@ -210,8 +233,10 @@ def _seed_nodes_from_interface(interface):
                 lat = pos.get("latitudeI", 0) / 1e7 if pos.get("latitudeI") else None
                 lon = pos.get("longitudeI", 0) / 1e7 if pos.get("longitudeI") else None
                 last_heard_ts = info.get("lastHeard")
+                # The device's nodeDB keeps whatever its clock said at the time,
+                # which can be in the future if that clock was ever ahead.
                 last_heard = (
-                    datetime.fromtimestamp(last_heard_ts, tz=timezone.utc)
+                    min(datetime.fromtimestamp(last_heard_ts, tz=timezone.utc), datetime.now(timezone.utc))
                     if last_heard_ts
                     else None
                 )
